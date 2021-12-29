@@ -1,0 +1,6 @@
+[submodule "utils"]
+	path = utils
+	url = https://github.com/lifegpc/c-utils.git
+[submodule "getopt"]
+	path = getopt
+	url = https://github.com/lifegpc/getopt-MSVC.git
