@@ -11,6 +11,8 @@ set(
     FUCKAOKANA_FILES
     "${CMAKE_CURRENT_BINARY_DIR}/fuckaokana_config.h"
     "${CMAKE_CURRENT_BINARY_DIR}/fuckaokana_version.h"
+    archive.h
+    archive.cpp
     extract.h
     extract.cpp
     main.cpp

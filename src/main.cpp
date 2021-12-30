@@ -31,7 +31,8 @@ void print_help() {
     printf("%s", "\n\
 Options:\n\
     -h, --help          Print this message and exit.\n\
-    -V, --version       Show version and exit.\n");
+    -V, --version       Show version and exit.\n\
+    -y, --yes           Overwrite existed output file.\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -56,13 +57,15 @@ int main(int argc, char* argv[]) {
     struct option opts[] = {
         {"help", 0, nullptr, 'h'},
         {"version", 0, nullptr, 'V'},
+        {"yes", 0, nullptr, 'y'},
         nullptr,
     };
     int c;
-    std::string shortopts = "-hV";
+    std::string shortopts = "-hVy";
     std::string action = "";
     std::string input = "";
     std::string output = "";
+    bool yes = false;
     while ((c = getopt_long(argc, argv, shortopts.c_str(), opts, nullptr)) != -1) {
         switch (c) {
         case 'h':
@@ -77,6 +80,9 @@ int main(int argc, char* argv[]) {
             if (have_wargv) wchar_util::freeArgv(wargv, wargc);
 #endif
             return 0;
+        case 'y':
+            yes = true;
+            break;
         case 1:
             if (!action.length()) {
                 if (!strcmp(optarg, "e")) {
@@ -122,11 +128,13 @@ int main(int argc, char* argv[]) {
             auto pos = output.find_last_of('.');
             if (pos != std::string::npos) {
                 output = output.substr(0, pos);
+            } else {
+                output += "_extract";
             }
             auto dn = fileop::dirname(input);
             if (dn.length()) output = fileop::join(dn, output);
         }
-        return extract_archive(input, output) ? 0 : 1;
+        return extract_archive(input, output, yes) ? 0 : 1;
     }
     return 0;
 }
