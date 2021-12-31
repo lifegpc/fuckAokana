@@ -5,6 +5,7 @@
 #include <string>
 #include <string.h>
 #include "extract.h"
+#include "extract_all.h"
 #include "fileop.h"
 #include "getopt.h"
 #include "wchar_util.h"
@@ -23,7 +24,8 @@ void print_version() {
 
 void print_usage() {
     printf("%s", "Usage:\n\
-fuckaokana e [Options] <archive> [<Output>] Extract an archive.\n");
+fuckaokana e [Options] <archive> [<Output>] Extract an archive.\n\
+fuckaokana a [Options] [<datadir>] [<Output>] Extract all archive.\n");
 }
 
 void print_help() {
@@ -32,7 +34,8 @@ void print_help() {
 Options:\n\
     -h, --help          Print this message and exit.\n\
     -V, --version       Show version and exit.\n\
-    -y, --yes           Overwrite existed output file.\n");
+    -y, --yes           Overwrite existed output file.\n\
+    -v, --verbose       Enable verbose logging.\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -58,14 +61,16 @@ int main(int argc, char* argv[]) {
         {"help", 0, nullptr, 'h'},
         {"version", 0, nullptr, 'V'},
         {"yes", 0, nullptr, 'y'},
+        {"verbose", 0, nullptr, 'v'},
         nullptr,
     };
     int c;
-    std::string shortopts = "-hVy";
+    std::string shortopts = "-hVyv";
     std::string action = "";
     std::string input = "";
     std::string output = "";
     bool yes = false;
+    bool verbose = false;
     while ((c = getopt_long(argc, argv, shortopts.c_str(), opts, nullptr)) != -1) {
         switch (c) {
         case 'h':
@@ -83,9 +88,12 @@ int main(int argc, char* argv[]) {
         case 'y':
             yes = true;
             break;
+        case 'v':
+            verbose = true;
+            break;
         case 1:
             if (!action.length()) {
-                if (!strcmp(optarg, "e")) {
+                if (!strcmp(optarg, "e") || !strcmp(optarg, "a")) {
                     action = optarg;
                 } else {
                     printf("Error: Unknown action \"%s\"\n", optarg);
@@ -95,7 +103,7 @@ int main(int argc, char* argv[]) {
                     print_usage();
                     return 1;
                 }
-            } else if (action == "e") {
+            } else if (action == "e" || action == "a") {
                 if (!input.length()) {
                     input = optarg;
                 } else if (!output.length()) {
@@ -123,6 +131,11 @@ int main(int argc, char* argv[]) {
     if (have_wargv) wchar_util::freeArgv(wargv, wargc);
 #endif
     if (action == "e") {
+        if (!input.length()) {
+            printf("Archive path is needed.\n");
+            print_usage();
+            return 1;
+        }
         if (!output.length()) {
             output = fileop::basename(input);
             auto pos = output.find_last_of('.');
@@ -134,7 +147,15 @@ int main(int argc, char* argv[]) {
             auto dn = fileop::dirname(input);
             if (dn.length()) output = fileop::join(dn, output);
         }
-        return extract_archive(input, output, yes) ? 0 : 1;
+        return extract_archive(input, output, yes, verbose) ? 0 : 1;
+    } else if (action == "a") {
+        if (!input.length()) {
+            input = ".";
+        }
+        if (!output.length()) {
+            output = input;
+        }
+        return extract_all_archive(input, output, yes, verbose) ? 0 : 1;
     }
     return 0;
 }

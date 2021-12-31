@@ -41,7 +41,7 @@
 #endif
 
 typedef struct aokana_file_info {
-    char* file_name;
+    char* file_name = nullptr;
     uint32_t key = 0;
     uint32_t position = 0;
     uint32_t len = 0;

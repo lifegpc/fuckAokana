@@ -35,7 +35,7 @@
 #define printf printf_s
 #endif
 
-bool extract_archive(std::string input, std::string output, bool overwrite) {
+bool extract_archive(std::string input, std::string output, bool overwrite, bool verbose) {
     if (!fileop::exists(input)) {
         printf("Input file \"%s\" is not exists.\n", input.c_str());
         return false;
@@ -53,12 +53,16 @@ bool extract_archive(std::string input, std::string output, bool overwrite) {
     }
     aokana_archive* arc;
     if (open_archive(arc, input)) {
+        printf("Can not open archive \"%s\".\n", input.c_str());
         return false;
     }
     bool re = true;
     uint32_t count = get_file_count_from_archive(arc);
     aokana_file* f = nullptr;
     FILE* of = nullptr;
+    if (verbose) {
+        printf("There are %" PRIu32 " files from archive \"%s\".\n", count, input.c_str());
+    }
     for (uint32_t i = 0; i < count; i++) {
         f = get_file_from_archive(arc, i);
         if (!f) {
@@ -67,16 +71,25 @@ bool extract_archive(std::string input, std::string output, bool overwrite) {
             goto end;
         }
         auto fn = get_aokana_file_name(f);
+        if (verbose) {
+            printf("Get file \"%s\" from archive \"%s\".\n", fn.c_str(), input.c_str());
+        }
         auto path = fileop::join(output, fn);
         if (fileop::exists(path)) {
             if (!overwrite) {
                 free_aokana_file(f);
                 f = nullptr;
+                if (verbose) {
+                    printf("Output file \"%s\" already exists, skip extract file \"%s\".\n", path.c_str(), fn.c_str());
+                }
                 continue;
             } else {
                 if (!fileop::remove(path, true)) {
                     re = false;
                     goto end;
+                }
+                if (verbose) {
+                    printf("Removed output file \"%s\".\n", path.c_str());
                 }
             }
         }
@@ -121,6 +134,9 @@ bool extract_archive(std::string input, std::string output, bool overwrite) {
                     goto end;
                 }
             }
+        }
+        if (verbose) {
+            printf("Writed file \"%s\" to \"%s\".\n", fn.c_str(), path.c_str());
         }
         free_aokana_file(f);
         f = nullptr;

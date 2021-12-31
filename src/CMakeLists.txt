@@ -15,6 +15,8 @@ set(
     archive.cpp
     extract.h
     extract.cpp
+    extract_all.h
+    extract_all.cpp
     main.cpp
 )
 
