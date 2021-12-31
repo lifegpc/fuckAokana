@@ -37,7 +37,7 @@
 #endif
 
 typedef struct aokana_file_info {
-    std::string file_name;
+    char* file_name;
     uint32_t key = 0;
     uint32_t position = 0;
     uint32_t len = 0;
@@ -90,16 +90,21 @@ aokana_arc_error open_archive(aokana_archive** archive, const char* path) {
     return open_archive(*archive, path);
 }
 
+void free_aokana_file_info(aokana_file_info f) {
+    if (f.file_name) free(f.file_name);
+}
+
 void free_archive(aokana_archive* archive) {
     if (!archive) return;
     if (archive->f) fileop::fclose(archive->f);
-    linked_list_clear(archive->list);
+    linked_list_clear(archive->list, &free_aokana_file_info);
     free(archive);
 }
 
 void free_aokana_file(aokana_file* f) {
     if (!f) return;
     if (f->key_buf) free(f->key_buf);
+    free_aokana_file_info(*f);
     free(f);
 }
 
@@ -182,7 +187,14 @@ aokana_arc_error open_archive(aokana_archive*& archive, std::string path) {
         aokana_file_info inf;
         inf.len = cstr_read_uint32(buf2 + metapos, 0);
         uint32_t s = cstr_read_uint32(buf2 + metapos + 4, 0);
-        inf.file_name = std::string((char*)buf3 + s, min(strlen((char*)buf3 + s), buf3_size - s));
+        size_t le = min(strlen((char*)buf3 + s), buf3_size - s);
+        inf.file_name = (char*)malloc(le + 1);
+        if (!inf.file_name) {
+            re = AOKANA_ARC_OOM;
+            goto end;
+        }
+        memcpy(inf.file_name, buf3 + s, le);
+        inf.file_name[le] = 0;
         inf.key = cstr_read_uint32(buf2 + metapos + 8, 0);
         inf.position = cstr_read_uint32(buf2 + metapos + 12, 0);
         data_size += inf.len;
@@ -219,7 +231,10 @@ aokana_file* create_aokana_file(aokana_archive* arc, aokana_file_info inf) {
     if (!f) return nullptr;
     memset(f, 0, sizeof(aokana_file));
     f->arc = arc;
-    f->file_name = std::string(inf.file_name);
+    if (cstr_util_copy_str(&f->file_name, inf.file_name)) {
+        free(f);
+        return nullptr;
+    }
     f->key = inf.key;
     f->key_buf = nullptr;
     f->len = inf.len;
@@ -246,7 +261,10 @@ uint32_t get_file_count_from_archive(aokana_archive* archive) {
 size_t aokana_file_read(aokana_file* f, char* buf, size_t buf_len) {
     if (!f || !buf) return (size_t)-1;
     if (f->pos >= f->len) return (size_t)-2;
-    if (fileop::fseek(f->arc->f, (int64_t)f->position + (int64_t)f->pos, SEEK_SET)) return (size_t)-1;
+    int64_t loc = (int64_t)f->position + (int64_t)f->pos;
+    if (fileop::ftell(f->arc->f) != loc) {
+        if (fileop::fseek(f->arc->f, loc, SEEK_SET)) return (size_t)-1;
+    }
     size_t len = min(buf_len, f->len - f->pos);
     size_t c = fread(buf, 1, len, f->arc->f);
     if (!c) return c;
