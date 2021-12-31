@@ -24,7 +24,11 @@
 #endif
 
 #ifndef _S_IWRITE
+#if _WIN32
 #define _S_IWRITE 0x80
+#else
+#define _S_IWRITE 0
+#endif
 #endif
 
 #if HAVE_PRINTF_S
@@ -38,8 +42,10 @@ bool extract_archive(std::string input, std::string output, bool overwrite) {
     }
 #if _WIN32
     int dir_mode = 0;
+    int file_mode = _S_IWRITE;
 #else
     int dir_mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH;
+    int file_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 #endif
     if (!fileop::mkdirs(output, dir_mode, true)) {
         printf("Can not create directory: \"%s\".\n", output.c_str());
@@ -82,7 +88,7 @@ bool extract_archive(std::string input, std::string output, bool overwrite) {
         }
         int fd = 0;
         int err = 0;
-        if ((err = fileop::open(path, fd, O_WRONLY | _O_BINARY | O_CREAT, _SH_DENYWR, _S_IWRITE))) {
+        if ((err = fileop::open(path, fd, O_WRONLY | _O_BINARY | O_CREAT, _SH_DENYWR, file_mode))) {
             printf("Can not open file \"%s\".\n", path.c_str());
             re = false;
             goto end;

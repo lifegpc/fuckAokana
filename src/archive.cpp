@@ -25,7 +25,11 @@
 #endif
 
 #ifndef _S_IREAD
+#if _WIN32
 #define _S_IREAD 0x100
+#else
+#define _S_IREAD 0
+#endif
 #endif
 
 #ifndef max
