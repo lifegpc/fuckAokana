@@ -30,7 +30,10 @@ extern "C" {
 #endif
 
 void print_version() {
-    printf("fuckAokana v" FUCKAOKANA_VERSION "\n");
+    printf("fuckAokana v" FUCKAOKANA_VERSION " Copyright (C) 2021-2022 lifegpc\n\
+This program comes with ABSOLUTELY NO WARRANTY.\n\
+This is free software licensed under AGPL3, and you are welcome to redistribute it under certain conditions.\n\
+The source code is available at <https://github.com/lifegpc/fuckAokana>.\n");
 #if HAVE_FFMPEG
     printf("FFMPEG library version:\n");
     auto v = avutil_version();
@@ -61,6 +64,17 @@ fuckaokana e [Options] <archive> [<Output>] Extract an archive.\n"
 "fuckaokana a [Options] [<datadir>] [<Output>] Extract all archive.\n");
 }
 
+#if HAVE_FFMPEG
+void print_ffconf() {
+    printf("FFMPEG library configuration:\n");
+    printf("libavutil  : %s\n", avutil_configuration());
+    printf("libavcodec : %s\n", avcodec_configuration());
+    printf("libavformat: %s\n", avformat_configuration());
+    printf("libavfilter: %s\n", avfilter_configuration());
+    printf("libswscale : %s\n", swscale_configuration());
+}
+#endif
+
 void print_help() {
     print_usage();
     printf("%s", "\n\
@@ -68,8 +82,16 @@ Options:\n\
     -h, --help          Print this message and exit.\n\
     -V, --version       Show version and exit.\n\
     -y, --yes           Overwrite existed output file.\n\
-    -v, --verbose       Enable verbose logging.\n");
+    -v, --verbose       Enable verbose logging.\n"
+#if HAVE_FFMPEG
+"        --ffconf        Show ffmpeg's configuration.\n"
+#endif
+    );
 }
+
+#if HAVE_FFMPEG
+#define FUCKAOKANA_FFCONF 128
+#endif
 
 int main(int argc, char* argv[]) {
 #if _WIN32
@@ -95,6 +117,9 @@ int main(int argc, char* argv[]) {
         {"version", 0, nullptr, 'V'},
         {"yes", 0, nullptr, 'y'},
         {"verbose", 0, nullptr, 'v'},
+#if HAVE_FFMPEG
+        {"ffconf", 0, nullptr, FUCKAOKANA_FFCONF},
+#endif
         nullptr,
     };
     int c;
@@ -124,6 +149,14 @@ int main(int argc, char* argv[]) {
         case 'v':
             verbose = true;
             break;
+#if HAVE_FFMPEG
+        case FUCKAOKANA_FFCONF:
+            print_ffconf();
+#if _WIN32
+            if (have_wargv) wchar_util::freeArgv(wargv, wargc);
+#endif
+            return 0;
+#endif
         case 1:
             if (!action.length()) {
                 if (!strcmp(optarg, "e") || !strcmp(optarg, "a")) {
@@ -167,6 +200,10 @@ int main(int argc, char* argv[]) {
 #if _WIN32
     if (have_wargv) wchar_util::freeArgv(wargv, wargc);
 #endif
+    if (action.empty()) {
+        printf("No action found.\n");
+        return 1;
+    }
     if (action == "e") {
         if (!input.length()) {
             printf("Archive path is needed.\n");
