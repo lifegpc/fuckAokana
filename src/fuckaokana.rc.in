@@ -22,7 +22,7 @@ BEGIN
             VALUE "FileDescription",  "A tool that extract aokana's data file.\0"
             VALUE "FileVersion",      "@FUCKAOKANA_VERSION@\0"
             VALUE "InternalName",     "fuckaokana\0"
-            VALUE "LegalCopyright",   "Copyright (C) 2021  lifegpc\0"
+            VALUE "LegalCopyright",   "Copyright (C) 2021-2022 lifegpc\0"
             VALUE "OriginalFilename", "fuckaokana.exe\0"
             VALUE "ProductName",      "fuckaokana\0"
             VALUE "ProductVersion",   "@FUCKAOKANA_VERSION@\0"

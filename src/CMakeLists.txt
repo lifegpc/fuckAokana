@@ -1,3 +1,22 @@
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+option(ENABLE_FFMPEG "Use ffmpeg's library to merge CG." ON)
+
+if (ENABLE_FFMPEG)
+    find_package(AVFORMAT 58)
+    find_package(AVCODEC 58)
+    find_package(AVUTIL 56)
+    find_package(SWSCALE 3.9)
+    find_package(AVFILTER 7)
+    if (AVFORMAT_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND AND AVFILTER_FOUND)
+        set(HAVE_FFMPEG 1)
+    endif()
+endif()
+
+if (NOT HAVE_FFMPEG)
+    message(WARNING "ffmpeg not found. Extract and merge CG will not works.")
+endif()
+
 include(CheckSymbolExists)
 include(GNUInstallDirs)
 
@@ -13,12 +32,23 @@ set(
     "${CMAKE_CURRENT_BINARY_DIR}/fuckaokana_version.h"
     archive.h
     archive.cpp
+    archive_list.h
+    archive_list.cpp
     extract.h
     extract.cpp
     extract_all.h
     extract_all.cpp
     main.cpp
 )
+
+if (HAVE_FFMPEG)
+    list(APPEND FUCKAOKANA_FILES
+        extract_cgs.h
+        extract_cgs.cpp
+        merge_cg.h
+        merge_cg.c
+    )
+endif()
 
 if (WIN32)
     list(APPEND FUCKAOKANA_FILES "${CMAKE_CURRENT_BINARY_DIR}/fuckaokana.rc")
@@ -37,3 +67,10 @@ if (TARGET getopt)
     target_link_libraries(fuckaokana getopt)
 endif()
 install(TARGETS fuckaokana)
+if (HAVE_FFMPEG)
+    target_link_libraries(fuckaokana AVCODEC::AVCODEC)
+    target_link_libraries(fuckaokana AVFILTER::AVFILTER)
+    target_link_libraries(fuckaokana AVFORMAT::AVFORMAT)
+    target_link_libraries(fuckaokana AVUTIL::AVUTIL)
+    target_link_libraries(fuckaokana SWSCALE::SWSCALE)
+endif()

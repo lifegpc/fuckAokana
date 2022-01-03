@@ -12,6 +12,7 @@
 bool extract_all_archive(std::string input, std::string output, bool overwrite, bool verbose) {
     std::list<std::string> li;
     if (!fileop::listdir(input, li)) {
+        printf("Can not list content of directory \"%s\"\n", input.c_str());
         return false;
     }
     for (auto an = li.begin(); an != li.end(); an++) {

@@ -1,5 +1,6 @@
 #include "archive.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <list>
 #include <malloc.h>
@@ -11,6 +12,7 @@
 #include "cstr_util.h"
 #include "fileop.h"
 #include "linked_list.h"
+#include "str_util.h"
 
 #ifndef _O_BINARY
 #if _WIN32
@@ -58,6 +60,7 @@ typedef struct aokana_archive {
     uint32_t file_count;
     size_t file_size;
     FILE* f;
+    char* archive_name;
 } aokana_archive;
 
 aokana_arc_error arc_decrypt(uint8_t* data, size_t len, uint32_t key, uint8_t*& keybuf, uint32_t pos = 0) {
@@ -101,6 +104,7 @@ void free_aokana_file_info(aokana_file_info f) {
 void free_archive(aokana_archive* archive) {
     if (!archive) return;
     if (archive->f) fileop::fclose(archive->f);
+    if (archive->archive_name) free(archive->archive_name);
     linked_list_clear(archive->list, &free_aokana_file_info);
     free(archive);
 }
@@ -121,6 +125,10 @@ aokana_arc_error open_archive(aokana_archive*& archive, std::string path) {
         return AOKANA_ARC_OOM;
     }
     memset(arc, 0, sizeof(aokana_archive));
+    if (cstr_util_copy_str(&arc->archive_name, path.c_str())) {
+        free_archive(arc);
+        return AOKANA_ARC_OOM;
+    }
     if (!fileop::get_file_size(path, arc->file_size)) {
         free_archive(arc);
         return AOKANA_ARC_UNKNOWN_SIZE;
@@ -281,4 +289,206 @@ size_t aokana_file_read(aokana_file* f, char* buf, size_t buf_len) {
 std::string get_aokana_file_name(aokana_file* f) {
     if (!f) return "";
     return f->file_name;
+}
+
+aokana_file* get_file_from_archive(aokana_archive* archive, std::string file_path) {
+    if (!archive) return nullptr;
+    auto t = archive->list;
+    for (uint32_t i = 0; i < archive->file_count; i++) {
+        if (file_path == t->d.file_name) return create_aokana_file(archive, t->d);
+        t = t->next;
+    }
+    return nullptr;
+}
+
+std::string get_archive_name(aokana_archive* archive) {
+    if (!archive) return "";
+    return archive->archive_name;
+}
+
+uint32_t get_aokana_file_size(aokana_file* f) {
+    if (!f) return (uint32_t)-1;
+    return f->len;
+}
+
+std::string get_aokana_file_full_path(aokana_file* f) {
+    if (!f) return "";
+    return fileop::join(f->arc->archive_name, f->file_name);
+}
+
+bool compare_aokana_file_name(aokana_file* f1, aokana_file* f2) {
+    if (!f1 || !f2) return false;
+    return !strcmp(f1->file_name, f2->file_name);
+}
+
+std::string get_aokana_file_archive_name(aokana_file* f) {
+    if (!f || !f->arc) return "";
+    return f->arc->archive_name;
+}
+
+bool match_file_info(aokana_file_info f, std::string language, std::string file_name, bool& is_fallback) {
+    std::string fn(f.file_name);
+    auto fnl = str_util::str_split(fn, "/");
+    if (fnl.size() < 2 || fnl.size() > 3) return false;
+    std::string lang, filename;
+    fnl.pop_front();
+    if (fnl.size() == 1) filename = fnl.front();
+    else {
+        filename = fnl.back();
+        lang = fnl.front();
+    }
+    filename = fileop::filename(filename);
+    if (filename == file_name) {
+        if (lang.empty()) {
+            is_fallback = language.empty() ? false : true;
+            return true;
+        } else if (lang == language) {
+            is_fallback = false;
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+bool compare_aokana_file_info_name(aokana_file_info f1, aokana_file_info f2) {
+    std::string fn1(f1.file_name), fn2(f2.file_name);
+    auto fnl1 = str_util::str_split(fn1, "/"), fnl2 = str_util::str_split(fn2, "/");
+    if (fnl1.front() == fnl2.front() && fnl1.back() == fnl2.back()) return true;
+    return false;
+}
+
+struct LinkedList<aokana_file*>* find_files_from_archive(aokana_archive* archive, std::string language, std::string file_name, bool allow_fallback) {
+    struct LinkedList<aokana_file_info>* li = nullptr, * li2 = nullptr;
+    struct LinkedList<aokana_file*>* re = nullptr;
+    aokana_file* f = nullptr;
+    auto t = archive->list;
+    bool b = false;
+    if (match_file_info(t->d, language, file_name, b)) {
+        if (!linked_list_append(b ? li2 : li, &t->d)) return nullptr;
+    }
+    while (t->next) {
+        t = t->next;
+        if (match_file_info(t->d, language, file_name, b)) {
+            if (!linked_list_append(b ? li2 : li, &t->d)) {
+                linked_list_clear(li);
+                linked_list_clear(li2);
+                return nullptr;
+            }
+        }
+    }
+    if (li2) {
+        auto t2 = li2;
+        if (!linked_list_have(li, t2->d, &compare_aokana_file_info_name)) {
+            if (!linked_list_append(li, &t2->d)) {
+                linked_list_clear(li);
+                linked_list_clear(li2);
+                return nullptr;
+            }
+        }
+        while (t2->next) {
+            t2 = t2->next;
+            if (!linked_list_have(li, t2->d, &compare_aokana_file_info_name)) {
+                if (!linked_list_append(li, &t2->d)) {
+                    linked_list_clear(li);
+                    linked_list_clear(li2);
+                    return nullptr;
+                }
+            }
+        }
+    }
+    if (!li) {
+        linked_list_clear(li);
+        linked_list_clear(li2);
+        return nullptr;
+    }
+    t = li;
+    f = create_aokana_file(archive, t->d);
+    if (!f) {
+        linked_list_clear(li);
+        linked_list_clear(li2);
+        return nullptr;
+    }
+    if (!linked_list_append(re, &f)) {
+        free_aokana_file(f);
+        linked_list_clear(li);
+        linked_list_clear(li2);
+        return nullptr;
+    }
+    while (t->next) {
+        t = t->next;
+        f = create_aokana_file(archive, t->d);
+        if (!f) {
+            linked_list_clear(re, &free_aokana_file);
+            linked_list_clear(li);
+            linked_list_clear(li2);
+            return nullptr;
+        }
+        if (!linked_list_append(re, &f)) {
+            free_aokana_file(f);
+            linked_list_clear(re, &free_aokana_file);
+            linked_list_clear(li);
+            linked_list_clear(li2);
+            return nullptr;
+        }
+    }
+    linked_list_clear(li);
+    linked_list_clear(li2);
+    return re;
+}
+
+bool aokana_file_is_hi(aokana_file* f) {
+    if (!f) return false;
+    std::string n(f->file_name);
+    n = str_util::str_split(n, "/").front();
+    return n.length() >= 3 && n.find("_hi") == (n.length() - 3) ? true : false;
+}
+
+std::string get_aokana_file_lang(aokana_file* f) {
+    if (!f) return "";
+    auto s = str_util::str_split(f->file_name, "/");
+    if (s.size() >= 3) {
+        s.pop_back();
+        return s.back();
+    }
+    return "";
+}
+
+bool aokana_file_is_censor(aokana_file* f) {
+    if (!f) return false;
+    std::string n(f->file_name);
+    n = str_util::str_split(n, "/").front();
+    return n.length() >= 6 && n.find("censor") != -1 ? true : false;
+}
+
+int aokana_file_compare_language(aokana_file* f, aokana_file* f2) {
+    if (!f || !f2) return 0;
+    std::string n(f->file_name), n2(f2->file_name);
+    auto li = str_util::str_split(n, "/"), li2 = str_util::str_split(n2, "/");
+    if (li.front() != li2.front()) return 0;
+    li.pop_front();
+    li2.pop_front();
+    if (li.back() != li2.back()) return 0;
+    return li.size() > li2.size() ? -1 : 1;
+}
+
+#define MKTAG(a,b,c,d) ((a) | ((b) << 8) | ((c) << 16) | ((unsigned)(d) << 24))
+#define FFERRTAG(a, b, c, d) (-(int)MKTAG(a, b, c, d))
+#define AVERROR_EOF FFERRTAG( 'E','O','F',' ')
+#define AVERROR(e) (-(e))
+
+int aokana_file_readpacket(void* f, uint8_t* buf, int buf_size) {
+    size_t ret = aokana_file_read((aokana_file*)f, (char*)buf, buf_size);
+    if (ret == -1) return AVERROR(EINVAL);
+    else if (ret == -2) return AVERROR_EOF;
+    else return ret;
+}
+
+char* c_get_aokana_file_full_path(aokana_file* f) {
+    auto t = get_aokana_file_full_path(f);
+    char* tmp = nullptr;
+    if (cstr_util_copy_str(&tmp, t.c_str())) {
+        return nullptr;
+    }
+    return tmp;
 }

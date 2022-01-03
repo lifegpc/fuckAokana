@@ -10,6 +10,17 @@
 #include "getopt.h"
 #include "wchar_util.h"
 
+#if HAVE_FFMPEG
+#include "extract_cgs.h"
+extern "C" {
+    #include "libavcodec/avcodec.h"
+    #include "libavfilter/avfilter.h"
+    #include "libavformat/avformat.h"
+    #include "libavutil/avutil.h"
+    #include "libswscale/swscale.h"
+}
+#endif
+
 #if _WIN32
 #include "Windows.h"
 #endif
@@ -20,12 +31,34 @@
 
 void print_version() {
     printf("fuckAokana v" FUCKAOKANA_VERSION "\n");
+#if HAVE_FFMPEG
+    printf("FFMPEG library version:\n");
+    auto v = avutil_version();
+    printf("libavutil   %3u.%3u.%3u\n", v >> 16, (v & 0xff00) >> 8, v & 0xff);
+    v = avcodec_version();
+    printf("libavcodec  %3u.%3u.%3u\n", v >> 16, (v & 0xff00) >> 8, v & 0xff);
+    v = avformat_version();
+    printf("libavformat %3u.%3u.%3u\n", v >> 16, (v & 0xff00) >> 8, v & 0xff);
+    v = avfilter_version();
+    printf("libavfilter %3u.%3u.%3u\n", v >> 16, (v & 0xff00) >> 8, v & 0xff);
+    v = swscale_version();
+    printf("libswscale  %3u.%3u.%3u\n", v >> 16, (v & 0xff00) >> 8, v & 0xff);
+    printf("FFMPEG library license:\n");
+    printf("libavutil   %s\n", avutil_license());
+    printf("libavcodec  %s\n", avcodec_license());
+    printf("libavformat %s\n", avformat_license());
+    printf("libavfilter %s\n", avfilter_license());
+    printf("libswscale  %s\n", swscale_license());
+#endif
 }
 
 void print_usage() {
     printf("%s", "Usage:\n\
-fuckaokana e [Options] <archive> [<Output>] Extract an archive.\n\
-fuckaokana a [Options] [<datadir>] [<Output>] Extract all archive.\n");
+fuckaokana e [Options] <archive> [<Output>] Extract an archive.\n"
+#if HAVE_FFMPEG
+"fuckaokana c [Options] [<datadir>] [<Output>] Extract and merge all CGs.\n"
+#endif
+"fuckaokana a [Options] [<datadir>] [<Output>] Extract all archive.\n");
 }
 
 void print_help() {
@@ -95,6 +128,10 @@ int main(int argc, char* argv[]) {
             if (!action.length()) {
                 if (!strcmp(optarg, "e") || !strcmp(optarg, "a")) {
                     action = optarg;
+#if HAVE_FFMPEG
+                } else if (!strcmp(optarg, "c")) {
+                    action = optarg;
+#endif
                 } else {
                     printf("Error: Unknown action \"%s\"\n", optarg);
 #if _WIN32
@@ -103,7 +140,7 @@ int main(int argc, char* argv[]) {
                     print_usage();
                     return 1;
                 }
-            } else if (action == "e" || action == "a") {
+            } else if (action == "e" || action == "a" || action == "c") {
                 if (!input.length()) {
                     input = optarg;
                 } else if (!output.length()) {
@@ -156,6 +193,16 @@ int main(int argc, char* argv[]) {
             output = input;
         }
         return extract_all_archive(input, output, yes, verbose) ? 0 : 1;
+#if HAVE_FFMPEG
+    } else if (action == "c") {
+        if (!input.length()) {
+            input = ".";
+        }
+        if (!output.length()) {
+            output = fileop::join(input, "cg");
+        }
+        return extract_cgs(input, output, yes, verbose) ? 0 : 1;
+#endif
     }
     return 0;
 }
