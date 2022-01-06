@@ -374,7 +374,7 @@ int init_filters(c_linked_list** ifcs, c_linked_list** iovfcs, AVFilterGraph** g
         printf("Failed to set flags for filter buffersink.\n");
         goto end;
     }
-    if (!index) {
+    if (index == 1) {
         AVFilterContext* ori = (AVFilterContext*)(*ifcs)->d;
         if ((fferr = avfilter_link(ori, 0, *ofc, 0)) < 0) {
             printf("Failed to link %s %i with %s %i.\n", ori->name, 0, (*ofc)->name, 0);
