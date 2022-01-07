@@ -1,6 +1,7 @@
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 option(ENABLE_FFMPEG "Use ffmpeg's library to merge CG." ON)
+option(ENABLE_LZ4 "Use liblz4 to decompress data in UnityFS archive." ON)
 
 if (ENABLE_FFMPEG)
     find_package(AVFORMAT 58)
@@ -10,6 +11,12 @@ if (ENABLE_FFMPEG)
     find_package(AVFILTER 7)
     if (AVFORMAT_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND AND AVFILTER_FOUND)
         set(HAVE_FFMPEG 1)
+    endif()
+endif()
+if (ENABLE_LZ4)
+    find_package(LZ4)
+    if (LZ4_FOUND)
+        set(HAVE_LZ4 1)
     endif()
 endif()
 
@@ -39,6 +46,11 @@ set(
     extract_all.h
     extract_all.cpp
     main.cpp
+    unityfs/decompress.h
+    unityfs/decompress.cpp
+    unityfs/unityfs.h
+    unityfs/unityfs.cpp
+    unityfs/unityfs_private.h
 )
 
 if (HAVE_FFMPEG)
@@ -73,4 +85,7 @@ if (HAVE_FFMPEG)
     target_link_libraries(fuckaokana AVFORMAT::AVFORMAT)
     target_link_libraries(fuckaokana AVUTIL::AVUTIL)
     target_link_libraries(fuckaokana SWSCALE::SWSCALE)
+endif()
+if (HAVE_LZ4)
+    target_link_libraries(fuckaokana LZ4::LZ4)
 endif()

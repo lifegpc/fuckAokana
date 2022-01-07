@@ -20,6 +20,9 @@ extern "C" {
     #include "libswscale/swscale.h"
 }
 #endif
+#if HAVE_LZ4
+#include "lz4.h"
+#endif
 
 #if _WIN32
 #include "Windows.h"
@@ -46,6 +49,12 @@ The source code is available at <https://github.com/lifegpc/fuckAokana>.\n");
     printf("libavfilter %3u.%3u.%3u\n", v >> 16, (v & 0xff00) >> 8, v & 0xff);
     v = swscale_version();
     printf("libswscale  %3u.%3u.%3u\n", v >> 16, (v & 0xff00) >> 8, v & 0xff);
+#endif
+#if HAVE_LZ4
+    printf("Thirdparty library version:\n");
+    printf("liblz4      %s\n", LZ4_versionString());
+#endif
+#if HAVE_FFMPEG
     printf("FFMPEG library license:\n");
     printf("libavutil   %s\n", avutil_license());
     printf("libavcodec  %s\n", avcodec_license());

@@ -10,6 +10,7 @@
 #include "fileop.h"
 
 #include "archive.h"
+#include "unityfs/unityfs.h"
 
 #ifndef _O_BINARY
 #if _WIN32
@@ -50,6 +51,12 @@ bool extract_archive(std::string input, std::string output, bool overwrite, bool
     if (!fileop::mkdirs(output, dir_mode, true)) {
         printf("Can not create directory: \"%s\".\n", output.c_str());
         return false;
+    }
+    int is_unity = 0;
+    if ((is_unity = is_unityfs_file(input.c_str())) == -1) {
+        printf("Can not check file \"%s\" is a unityfs file or not.\n", input.c_str());
+    } else if (is_unity == 1) {
+        return extract_unityfs(input, output, overwrite, verbose);
     }
     aokana_archive* arc;
     if (open_archive(arc, input)) {
@@ -147,5 +154,29 @@ end:
     if (f) free_aokana_file(f);
     if (of) fileop::fclose(of);
     free_archive(arc);
+    return true;
+}
+
+bool extract_unityfs(std::string input, std::string output, bool overwrite, bool verbose) {
+    if (!fileop::exists(input)) {
+        printf("Input file \"%s\" is not exists.\n", input.c_str());
+        return false;
+    }
+#if _WIN32
+    int dir_mode = 0;
+    int file_mode = _S_IWRITE;
+#else
+    int dir_mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH;
+    int file_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+#endif
+    if (!fileop::mkdirs(output, dir_mode, true)) {
+        printf("Can not create directory: \"%s\".\n", output.c_str());
+        return false;
+    }
+    unityfs_archive* arc = nullptr;
+    if (!(arc = open_unityfs_archive(input.c_str()))) {
+        return false;
+    }
+    free_unityfs_archive(arc);
     return true;
 }
