@@ -95,6 +95,9 @@ unityfs_archive* open_unityfs_archive(const char* f) {
     unityfs_archive* arc = nullptr;
     file_reader_file* r = nullptr;
     char* sign = nullptr, * obuf = nullptr, * dbuf = nullptr, * buf = nullptr;
+    unityfs_asset* asset = nullptr;
+    struct LinkedList<unityfs_node_info>* node = nullptr;
+    uint32_t meta_size = 0, pos = 20;
     arc = (unityfs_archive*)malloc(sizeof(unityfs_archive));
     if (!arc) {
         printf("Out of memory.\n");
@@ -205,7 +208,7 @@ unityfs_archive* open_unityfs_archive(const char* f) {
         }
         buf = dbuf;
     }
-    uint32_t meta_size = arc->compression ? arc->uncompress_block_size : arc->compress_block_size, pos = 20;
+    meta_size = arc->compression ? arc->uncompress_block_size : arc->compress_block_size;
     if (meta_size < 24) {
         printf("Metadata block is too small.\n");
         goto end;
@@ -271,8 +274,7 @@ unityfs_archive* open_unityfs_archive(const char* f) {
         }
         memset(&ni, 0, sizeof(unityfs_node_info));
     }
-    unityfs_asset* asset = nullptr;
-    auto node = arc->nodes;
+    node = arc->nodes;
     for (int32_t i = 0; i < arc->num_nodes; i++) {
         if (!(asset = create_asset_from_node(arc, &node->d))) {
             printf("Failed to load asset in file \"%s\".\n", f);
