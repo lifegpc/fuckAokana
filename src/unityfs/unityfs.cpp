@@ -6,6 +6,7 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <string.h>
+#include "asset.h"
 #include "cstr_util.h"
 #include "decompress.h"
 #include "err.h"
@@ -79,6 +80,8 @@ void free_unityfs_archive(unityfs_archive* arc) {
     if (arc->f) fileop::fclose(arc->f);
     linked_list_clear(arc->blocks);
     linked_list_clear(arc->nodes, &free_unityfs_node_info);
+    linked_list_clear(arc->assets, &free_unityfs_asset);
+    if (arc->curbuf) free(arc->curbuf);
     free(arc);
 }
 
@@ -267,6 +270,20 @@ unityfs_archive* open_unityfs_archive(const char* f) {
             goto end;
         }
         memset(&ni, 0, sizeof(unityfs_node_info));
+    }
+    unityfs_asset* asset = nullptr;
+    auto node = arc->nodes;
+    for (int32_t i = 0; i < arc->num_nodes; i++) {
+        if (!(asset = create_asset_from_node(arc, &node->d))) {
+            printf("Failed to load asset in file \"%s\".\n", f);
+            goto end;
+        }
+        if (!linked_list_append(arc->assets, &asset)) {
+            printf("Out of memory.\n");
+            free_unityfs_asset(asset);
+            goto end;
+        }
+        node = node->next;
     }
     if (r) free_file_reader(r);
     if (obuf) free(obuf);

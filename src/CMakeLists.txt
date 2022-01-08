@@ -46,8 +46,14 @@ set(
     extract_all.h
     extract_all.cpp
     main.cpp
+    unityfs/asset.h
+    unityfs/asset.cpp
+    unityfs/block_storage.h
+    unityfs/block_storage.cpp
     unityfs/decompress.h
     unityfs/decompress.cpp
+    "unityfs/type.h"
+    "unityfs/type.cpp"
     unityfs/unityfs.h
     unityfs/unityfs.cpp
     unityfs/unityfs_private.h
