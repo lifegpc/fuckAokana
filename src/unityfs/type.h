@@ -3,6 +3,7 @@
 #include "unityfs_private.h"
 #if __cplusplus
 extern "C" {
+unityfs_type_tree* create_typetree(unityfs_archive* arc, unityfs_asset* asset);
 unityfs_type_metadata* create_metatree_from_asset(unityfs_archive* arc, unityfs_asset* asset);
 #endif
 #if __cplusplus

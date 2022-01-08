@@ -17,5 +17,6 @@ endif()
 set(ENABLE_ICONV OFF CACHE BOOL "Libiconv is not needed.")
 add_subdirectory(utils)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/utils")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/incbin")
 
 add_subdirectory(src)

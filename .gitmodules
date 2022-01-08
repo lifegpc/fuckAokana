@@ -4,3 +4,6 @@
 [submodule "getopt"]
 	path = getopt
 	url = https://github.com/lifegpc/getopt-MSVC.git
+[submodule "incbin"]
+	path = incbin
+	url = https://github.com/graphitemaster/incbin.git

@@ -41,6 +41,8 @@ set(
     archive.cpp
     archive_list.h
     archive_list.cpp
+    embed_data.h
+    embed_data.c
     extract.h
     extract.cpp
     extract_all.h
@@ -74,12 +76,25 @@ if (WIN32)
 endif()
 set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/fuckaokana_version.h" PROPERTIES GENERATED TRUE)
 
+if (MSVC)
+    list(APPEND FUCKAOKANA_FILES "${CMAKE_CURRENT_BINARY_DIR}/data.c")
+    set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/data.c" PROPERTIES GENERATED TRUE)
+endif()
+
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 include_directories("${CMAKE_BINARY_DIR}/utils")
 
 add_custom_target(fuckaokana-version ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_SOURCE_DIR}/FUCKAOKANA_VERSION.cmake")
+if (MSVC)
+    add_executable(incbin "../incbin/incbin.c")
+    add_custom_target(fuckaokana-data "$<TARGET_FILE:incbin>" "${CMAKE_CURRENT_SOURCE_DIR}/embed_data.c" -o "${CMAKE_CURRENT_BINARY_DIR}/data.c" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_dependencies(fuckaokana-data incbin)
+endif()
 add_executable(fuckaokana "${FUCKAOKANA_FILES}")
 add_dependencies(fuckaokana fuckaokana-version)
+if (MSVC)
+    add_dependencies(fuckaokana fuckaokana-data)
+endif()
 target_link_libraries(fuckaokana utils)
 if (TARGET getopt)
     target_link_libraries(fuckaokana getopt)

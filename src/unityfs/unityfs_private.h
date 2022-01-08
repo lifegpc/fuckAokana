@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "linked_list.h"
+#include "dict.h"
 typedef struct unityfs_block_info {
     int32_t compress_size;
     int32_t uncompress_size;
@@ -15,11 +16,26 @@ typedef struct unityfs_node_info {
     int32_t status;
     char* name;
 } unityfs_node_info;
+typedef struct unityfs_type_tree {
+    uint32_t format;
+    struct LinkedList<struct unityfs_type_tree*>* children;
+    int32_t version;
+    char* type;
+    char* name;
+    int32_t size;
+    uint32_t index;
+    int32_t flags;
+    unsigned char is_array;
+} unityfs_type_tree;
 typedef struct unityfs_type_metadata {
     uint32_t format;
     struct LinkedList<int32_t>* class_ids;
     char* generator_version;
     uint32_t target_platform;
+    struct Dict<int32_t, char[32]>* hashes;
+    unsigned char has_type_trees;
+    int32_t num_types;
+    struct Dict<int32_t, unityfs_type_tree*>* type_trees;
 } unityfs_type_metadata;
 typedef struct unityfs_asset {
     unityfs_node_info* info;
@@ -67,6 +83,7 @@ typedef struct unityfs_archive {
 } unityfs_archive;
 void free_unityfs_node_info(unityfs_node_info n);
 void free_unityfs_asset(unityfs_asset* asset);
+void free_unityfs_type_tree(unityfs_type_tree* tree);
 void free_unityfs_type_metadata(unityfs_type_metadata* meta);
 #define UNITYFS_COMPRESSION_NONE 0
 #define UNITYFS_COMPRESSION_LZMA 1
