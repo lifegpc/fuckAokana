@@ -3,12 +3,14 @@
 #include "fuckaokana_config.h"
 
 #include <fcntl.h>
+#include <inttypes.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <string.h>
 #include "asset.h"
 #include "cstr_util.h"
 #include "decompress.h"
+#include "environment.h"
 #include "err.h"
 #include "file_reader.h"
 #include "fileop.h"
@@ -82,10 +84,16 @@ void free_unityfs_archive(unityfs_archive* arc) {
     linked_list_clear(arc->nodes, &free_unityfs_node_info);
     linked_list_clear(arc->assets, &free_unityfs_asset);
     if (arc->curbuf) free(arc->curbuf);
+    if (arc->name) free(arc->name);
+    if (arc->env) {
+        if (delete_archive_from_environment(arc->env, arc)) {
+            printf("Warning: failed remove archive from environment.\n");
+        }
+    }
     free(arc);
 }
 
-unityfs_archive* open_unityfs_archive(const char* f) {
+unityfs_archive* open_unityfs_archive(unityfs_environment* env, const char* f) {
     if (!f) return nullptr;
     if (!fileop::exists(f)) {
         printf("File \"%s\" not exists.\n", f);
@@ -104,6 +112,7 @@ unityfs_archive* open_unityfs_archive(const char* f) {
         return nullptr;
     }
     memset(arc, 0, sizeof(unityfs_archive));
+    arc->env = env;
     if ((err = fileop::open(f, fd, O_RDONLY | _O_BINARY, _SH_DENYWR, _S_IREAD))) {
         std::string errmsg;
         if (!err::get_errno_message(errmsg, err)) {
@@ -286,6 +295,34 @@ unityfs_archive* open_unityfs_archive(const char* f) {
             goto end;
         }
         node = node->next;
+    }
+    for (int32_t i = 0; i < arc->num_nodes; i++) {
+        auto asset = linked_list_get(arc->assets, i);
+        if (!asset) {
+            printf("Failed to get asset: index %" PRIi32 " out of range.\n", i);
+            goto end;
+        }
+        if (asset->d->is_resource) continue;
+        if (cstr_util_copy_str(&arc->name, asset->d->info->name)) {
+            printf("Out of memory\n");
+            goto end;
+        }
+        break;
+    }
+    if (!arc->name) {
+        auto asset = linked_list_get(arc->assets, 0);
+        if (!asset) {
+            printf("Failed to get asset: index 0 out of range.\n");
+            goto end;
+        }
+        if (cstr_util_copy_str(&arc->name, asset->d->info->name)) {
+            printf("Out of memory\n");
+            goto end;
+        }
+    }
+    if (add_archive_to_environment(env, arc)) {
+        printf("Failed to add archive to environment: Out of memory.\n");
+        goto end;
     }
     if (r) free_file_reader(r);
     if (obuf) free(obuf);

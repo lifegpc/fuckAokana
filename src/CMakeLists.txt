@@ -50,10 +50,16 @@ set(
     main.cpp
     unityfs/asset.h
     unityfs/asset.cpp
+    unityfs/assetref.h
+    unityfs/assetref.cpp
     unityfs/block_storage.h
     unityfs/block_storage.cpp
     unityfs/decompress.h
     unityfs/decompress.cpp
+    "unityfs/environment.h"
+    "unityfs/environment.cpp"
+    unityfs/object_info.h
+    unityfs/object_info.cpp
     "unityfs/type.h"
     "unityfs/type.cpp"
     unityfs/unityfs.h

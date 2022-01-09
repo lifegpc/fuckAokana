@@ -174,9 +174,19 @@ bool extract_unityfs(std::string input, std::string output, bool overwrite, bool
         return false;
     }
     unityfs_archive* arc = nullptr;
-    if (!(arc = open_unityfs_archive(input.c_str()))) {
-        return false;
+    bool re = true;
+    auto env = create_unityfs_environment();
+    if (!env) {
+        printf("Out of memory.\n");
+        re = false;
+        goto end;
     }
-    free_unityfs_archive(arc);
-    return true;
+    if (!(arc = open_unityfs_archive(env, input.c_str()))) {
+        re = false;
+        goto end;
+    }
+end:
+    if (arc) free_unityfs_archive(arc);
+    if (env) free_unityfs_environment(env);
+    return re;
 }

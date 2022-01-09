@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "linked_list.h"
 #include "dict.h"
+typedef struct unityfs_asset unityfs_asset;
+typedef struct unityfs_environment unityfs_environment;
 typedef struct unityfs_block_info {
     int32_t compress_size;
     int32_t uncompress_size;
@@ -27,6 +29,15 @@ typedef struct unityfs_type_tree {
     int32_t flags;
     unsigned char is_array;
 } unityfs_type_tree;
+typedef struct unityfs_object_info {
+    unityfs_asset* asset;
+    int64_t path_id;
+    int64_t data_offset;
+    uint32_t size;
+    int32_t type_id;
+    int32_t class_id;
+    unsigned char is_destroyed;
+} unityfs_object_info;
 typedef struct unityfs_type_metadata {
     uint32_t format;
     struct LinkedList<int32_t>* class_ids;
@@ -37,6 +48,20 @@ typedef struct unityfs_type_metadata {
     int32_t num_types;
     struct Dict<int32_t, unityfs_type_tree*>* type_trees;
 } unityfs_type_metadata;
+typedef struct unityfs_asset_add {
+    int64_t id;
+    int32_t data;
+} unityfs_asset_add;
+typedef struct unityfs_assetref {
+    unityfs_asset* source;
+    unityfs_asset* asset;
+    char* asset_path;
+    char guid[16];
+    int32_t type;
+    char* file_path;
+    /// 1 if don't reference another asset otherwise 0
+    unsigned char asset_self;
+} unityfs_assetref;
 typedef struct unityfs_asset {
     unityfs_node_info* info;
     uint32_t metadata_size;
@@ -44,11 +69,18 @@ typedef struct unityfs_asset {
     uint32_t format;
     uint32_t data_offset;
     unityfs_type_metadata* tree;
+    struct Dict<int64_t, unityfs_object_info*>* objects;
+    struct Dict<int32_t, unityfs_type_tree*>* types;
+    struct LinkedList<unityfs_asset_add>* adds;
+    struct LinkedList<unityfs_assetref*>* asset_refs;
     /// 0 if little endian otherwise big endian
     unsigned char endian : 1;
     unsigned char long_object_ids : 1;
+    unsigned char is_resource : 1;
 } unityfs_asset;
 typedef struct unityfs_archive {
+    unityfs_environment* env;
+    char* name;
     int32_t format_version;
     char* unity_version;
     char* generator_version;
@@ -81,10 +113,16 @@ typedef struct unityfs_archive {
     /// 0 if little endian otherwise big endian
     unsigned char endian : 1;
 } unityfs_archive;
+typedef struct unityfs_environment {
+    struct LinkedList<unityfs_archive*>* archives;
+    unityfs_type_metadata* meta;
+} unityfs_environment;
 void free_unityfs_node_info(unityfs_node_info n);
 void free_unityfs_asset(unityfs_asset* asset);
 void free_unityfs_type_tree(unityfs_type_tree* tree);
 void free_unityfs_type_metadata(unityfs_type_metadata* meta);
+void free_unityfs_object_info(unityfs_object_info* obj);
+void free_unityfs_assetref(unityfs_assetref* ref);
 #define UNITYFS_COMPRESSION_NONE 0
 #define UNITYFS_COMPRESSION_LZMA 1
 #define UNITYFS_COMPRESSION_LZ4 2
