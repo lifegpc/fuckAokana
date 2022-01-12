@@ -1,9 +1,12 @@
 #include "assetref.h"
 #include "fuckaokana_config.h"
 
+#include <inttypes.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
+#include "str_util.h"
 
 #if HAVE_PRINTF_S
 #define printf printf_s
@@ -59,4 +62,18 @@ unityfs_assetref* create_assetref_from_asset(unityfs_asset* asset, file_reader_f
 end:
     free_unityfs_assetref(ref);
     return nullptr;
+}
+
+void dump_unityfs_assetref(unityfs_assetref* ref, int indent, int indent_now) {
+    if (!ref || ref->asset_self) return;
+    std::string ind(indent_now, ' ');
+    std::string tmp("(Unknown)");
+    if (ref->asset_path) tmp = ref->asset_path;
+    printf("%sAsset Path: %s\n", ind.c_str(), tmp.c_str());
+    tmp = std::string(ref->guid, 16);
+    tmp = str_util::str_hex(tmp);
+    printf("%sGUID: %s\n", ind.c_str(), tmp.c_str());
+    printf("%sType: %" PRIi32 "\n", ind.c_str(), ref->type);
+    tmp = ref->file_path ? ref->file_path : "(Unknown)";
+    printf("%sFile path: %s\n", ind.c_str(), tmp.c_str());
 }

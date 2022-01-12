@@ -185,6 +185,9 @@ bool extract_unityfs(std::string input, std::string output, bool overwrite, bool
         re = false;
         goto end;
     }
+    if (verbose) {
+        dump_unityfs_archive(arc, 2, 0);
+    }
 end:
     if (arc) free_unityfs_archive(arc);
     if (env) free_unityfs_environment(env);

@@ -1,12 +1,16 @@
 #include "type.h"
 #include "fuckaokana_config.h"
 
+#include <inttypes.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
 #include "block_storage.h"
 #include "cstr_util.h"
+#include "dump.h"
 #include "../embed_data.h"
+#include "str_util.h"
 
 #if HAVE_PRINTF_S
 #define printf printf_s
@@ -356,4 +360,52 @@ end:
     linked_list_clear(parents);
     free_unityfs_type_tree(tree);
     return nullptr;
+}
+
+void dump_unityfs_type_metadata_hash(int32_t key, char value[32], int indent, int indent_now) {
+    std::string data = key < 0 ? std::string(value, 32) : std::string(value, 16);
+    std::string ind(indent_now, ' ');
+    data = str_util::str_hex(data);
+    printf("%s%" PRIi32 ": 0x%s\n", ind.c_str(), key, data.c_str());
+}
+
+void dump_unityfs_type_metadata(unityfs_type_metadata* meta, int indent, int indent_now) {
+    if (!meta) return;
+    std::string ind(indent_now, ' ');
+    std::string tmp("(Unknown)");
+    printf("%sFormat: %" PRIu32 "\n", ind.c_str(), meta->format);
+    dump_simple_list(meta->class_ids, "Class IDs", &print_int32, indent, indent_now, 10);
+    if (meta->generator_version) tmp = meta->generator_version;
+    printf("%sGenerator Version: %s\n", ind.c_str(), tmp.c_str());
+    printf("%sTarget Platform: %" PRIu32 "\n", ind.c_str(), meta->target_platform);
+    size_t c = dict_count(meta->hashes);
+    if (c == 0) {
+        printf("%sHashes: (Empty)\n", ind.c_str());
+    } else {
+        printf("%sHashes: \n", ind.c_str());
+        dict_iter<int32_t, char[32]>(meta->hashes, &dump_unityfs_type_metadata_hash, indent, indent_now + indent);
+    }
+    tmp = meta->has_type_trees ? "yes" : "no";
+    printf("%sHave type trees: %s\n", ind.c_str(), tmp.c_str());
+    if (meta->type_trees) printf("%sType trees: \n", ind.c_str());
+    dict_iter(meta->type_trees, &dump_dict, "Type tree", indent, indent_now + indent, &print_int32, &dump_unityfs_type_tree);
+}
+
+void dump_unityfs_type_tree(unityfs_type_tree* tree, int indent, int indent_now) {
+    if (!tree) return;
+    std::string ind(indent_now, ' ');
+    printf("%sFormat: %" PRIu32 "\n", ind.c_str(), tree->format);
+    printf("%sVersion: %" PRIi32 "\n", ind.c_str(), tree->version);
+    std::string tmp("(Unknown)");
+    if (tree->type) tmp = tree->type;
+    printf("%sType: %s\n", ind.c_str(), tmp.c_str());
+    tmp = tree->name ? tree->name : "(Unknown)";
+    printf("%sName: %s\n", ind.c_str(), tmp.c_str());
+    printf("%sSize: %" PRIi32 "\n", ind.c_str(), tree->size);
+    printf("%sIndex: %" PRIu32 "\n", ind.c_str(), tree->index);
+    printf("%sFlags: %" PRIi32 "\n", ind.c_str(), tree->flags);
+    tmp = tree->is_array ? "yes" : "no";
+    printf("%sIs array: %s\n", ind.c_str(), tmp.c_str());
+    if (tree->children) printf("%sChildren: \n", ind.c_str());
+    linked_list_iter(tree->children, &dump_list, (const char*)nullptr, indent, indent_now + indent, &dump_unityfs_type_tree);
 }

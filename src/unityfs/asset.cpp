@@ -8,6 +8,7 @@
 #include <string>
 #include "assetref.h"
 #include "block_storage.h"
+#include "dump.h"
 #include "environment.h"
 #include "file_reader.h"
 #include "object_info.h"
@@ -247,4 +248,49 @@ int asset_read_id(unityfs_asset* asset, file_reader_file* f, int64_t* re) {
         *re = tmp;
         return 0;
     }
+}
+
+void dump_unityfs_asset_types(int32_t key, unityfs_type_tree* tree, int indent, int indent_now, unityfs_asset* asset) {
+    if (!tree || !asset) return;
+    std::string ind(indent_now, ' ');
+    if (asset->tree && dict_have_key(asset->tree->type_trees, key)) {
+        printf("%sType tree %" PRIi32 ": Skip print\n", ind.c_str(), key);
+    } else {
+        printf("%sType tree %" PRIi32 ": \n", ind.c_str(), key);
+        dump_unityfs_type_tree(tree, indent, indent_now + indent);
+    }
+}
+
+void dump_unityfs_asset(unityfs_asset* asset, int indent, int indent_now) {
+    if (!asset) return;
+    std::string ind(indent_now, ' ');
+    if (asset->info) {
+        printf("%sNode information: \n", ind.c_str());
+        dump_unityfs_node_info(*asset->info, indent, indent_now + indent);
+    }
+    std::string tmp = asset->is_resource ? "yes" : "no";
+    printf("%sResource asset: %s\n", ind.c_str(), tmp.c_str());
+    if (asset->is_resource) return;
+    printf("%sMetadata size: %" PRIu32 "\n", ind.c_str(), asset->metadata_size);
+    printf("%sFile size: %" PRIu32 "\n", ind.c_str(), asset->file_size);
+    printf("%sFormat: %" PRIu32 "\n", ind.c_str(), asset->format);
+    printf("%sData offset: %" PRIu32 "\n", ind.c_str(), asset->data_offset);
+    if (asset->tree) {
+        printf("%sType metadata: \n", ind.c_str());
+        dump_unityfs_type_metadata(asset->tree, indent, indent_now + indent);
+    }
+    if (asset->objects) printf("%sObjects: \n", ind.c_str());
+    dict_iter(asset->objects, &dump_dict, "Object", indent, indent_now + indent, &print_int64, &dump_unityfs_object_info);
+    if (asset->types) printf("%sTypes: \n", ind.c_str());
+    dict_iter(asset->types, &dump_unityfs_asset_types, indent, indent_now + indent, asset);
+    if (asset->adds) printf("%sAdditional data: \n", ind.c_str());
+    linked_list_iter(asset->adds, &dump_list, (const char*)nullptr, indent, indent_now + indent, &dump_unityfs_asset_add);
+    if (asset->asset_refs->next) printf("%sAsset references: \n", ind.c_str());
+    linked_list_iter(asset->asset_refs->next, &dump_list, "Asset reference", indent, indent_now + indent, &dump_unityfs_assetref);
+}
+
+void dump_unityfs_asset_add(unityfs_asset_add add, int indent, int indent_now) {
+    std::string ind(indent_now, ' ');
+    printf("%sID: %" PRIi64 "\n", ind.c_str(), add.id);
+    printf("%sData: %" PRIi32 "\n", ind.c_str(), add.data);
 }

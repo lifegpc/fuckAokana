@@ -1,6 +1,5 @@
 #include "unityfs.h"
 #include "unityfs_private.h"
-#include "fuckaokana_config.h"
 
 #include <fcntl.h>
 #include <inttypes.h>
@@ -14,6 +13,7 @@
 #include "err.h"
 #include "file_reader.h"
 #include "fileop.h"
+#include "str_util.h"
 
 #ifndef _O_BINARY
 #if _WIN32
@@ -334,4 +334,53 @@ end:
     if (dbuf) free(dbuf);
     if (arc) free_unityfs_archive(arc);
     return nullptr;
+}
+
+void dump_unityfs_archive(unityfs_archive* arc, int indent, int indent_now) {
+    if (!arc) return;
+    std::string tmp = "(Unknown)";
+    std::string ind(indent_now, ' ');
+    if (arc->name) tmp = arc->name;
+    printf("%sName: %s\n", ind.c_str(), tmp.c_str());
+    printf("%sFormat version: %" PRIi32 "\n", ind.c_str(), arc->format_version);
+    tmp = "(Unknown)";
+    if (arc->unity_version) tmp = arc->unity_version;
+    printf("%sUnity version: %s\n", ind.c_str(), tmp.c_str());
+    tmp = "(Unknown)";
+    if (arc->generator_version) tmp = arc->generator_version;
+    printf("%sGenerator version: %s\n", ind.c_str(), tmp.c_str());
+    printf("%sFile size: %"  PRIi64 "\n", ind.c_str(), arc->file_size);
+    printf("%sMetadata block compressed size: %" PRIu32 "\n", ind.c_str(), arc->compress_block_size);
+    printf("%sMetadata block uncompressed size: %" PRIu32 "\n", ind.c_str(), arc->uncompress_block_size);
+    printf("%sFlags: %" PRIu32 "\n", ind.c_str(), arc->flags);
+    printf("%sGUID: 0x%s\n", ind.c_str(), str_util::str_hex(std::string(arc->guid, 16)).c_str());
+    if (arc->blocks) {
+        printf("%sStorage block information: \n", ind.c_str());
+        linked_list_iter(arc->blocks, &dump_list, "Storage block", indent, indent_now + indent, &dump_unityfs_block_info);
+    }
+    if (arc->nodes) {
+        printf("%sNode information: \n", ind.c_str());
+        linked_list_iter(arc->nodes, &dump_list, "Node", indent, indent_now + indent, &dump_unityfs_node_info);
+    }
+    if (arc->assets) {
+        printf("%sAssets information: \n", ind.c_str());
+        linked_list_iter(arc->assets, &dump_list, "Asset", indent, indent_now + indent, &dump_unityfs_asset);
+    }
+}
+
+void dump_unityfs_block_info(unityfs_block_info bk, int indent, int indent_now) {
+    std::string ind(indent_now, ' ');
+    printf("%sCompressed size: %" PRIi32 "\n", ind.c_str(), bk.compress_size);
+    printf("%sUncompressed size: %" PRIi32 "\n", ind.c_str(), bk.uncompress_size);
+    printf("%sFlags: %" PRIi16 "\n", ind.c_str(), bk.flags);
+}
+
+void dump_unityfs_node_info(unityfs_node_info n, int indent, int indent_now) {
+    std::string ind(indent_now, ' ');
+    printf("%sOffset: %" PRIi64 "\n", ind.c_str(), n.offset);
+    printf("%sSize: %" PRIi64 "\n", ind.c_str(), n.size);
+    printf("%sStatus: %" PRIi32 "\n", ind.c_str(), n.status);
+    std::string name("(Unknown)");
+    if (n.name) name = n.name;
+    printf("%sName: %s\n", ind.c_str(), name.c_str());
 }

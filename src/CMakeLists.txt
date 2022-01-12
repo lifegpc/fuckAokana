@@ -56,6 +56,8 @@ set(
     unityfs/block_storage.cpp
     unityfs/decompress.h
     unityfs/decompress.cpp
+    unityfs/dump.h
+    unityfs/dump.cpp
     "unityfs/environment.h"
     "unityfs/environment.cpp"
     unityfs/object_info.h

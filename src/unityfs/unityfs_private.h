@@ -2,6 +2,7 @@
 #define _UNITYFS_UNITYFS_PRIVATE_H
 #include <stdint.h>
 #include <stdio.h>
+#include "fuckaokana_config.h"
 #include "linked_list.h"
 #include "dict.h"
 typedef struct unityfs_asset unityfs_asset;
@@ -123,6 +124,68 @@ void free_unityfs_type_tree(unityfs_type_tree* tree);
 void free_unityfs_type_metadata(unityfs_type_metadata* meta);
 void free_unityfs_object_info(unityfs_object_info* obj);
 void free_unityfs_assetref(unityfs_assetref* ref);
+void dump_unityfs_block_info(unityfs_block_info bk, int indent, int indent_now);
+void dump_unityfs_node_info(unityfs_node_info n, int indent, int indent_now);
+void dump_unityfs_asset(unityfs_asset* asset, int indent, int indent_now);
+void dump_unityfs_type_metadata(unityfs_type_metadata* meta, int indent, int indent_now);
+void dump_unityfs_type_tree(unityfs_type_tree* tree, int indent, int indent_now);
+void dump_unityfs_object_info(unityfs_object_info* obj, int indent, int indent_now);
+void dump_unityfs_asset_add(unityfs_asset_add add, int indent, int indent_now);
+void dump_unityfs_assetref(unityfs_assetref* ref, int indent, int indent_now);
+#if HAVE_PRINTF_S
+#define printf printf_s
+#endif
+template <typename T, typename ... Args>
+void dump_list(size_t index, T data, const char* name, int indent, int indent_now, void(*callback)(T data, int indent, int indent_now, Args... args), Args... args) {
+    std::string ind(indent_now, ' ');
+    std::string tmp("Index");
+    if (name) tmp = name;
+    printf("%s%s %zi:\n", ind.c_str(), tmp.c_str(), index);
+    if (callback) callback(data, indent, indent_now + indent, args...);
+}
+template <typename T, typename ... Args>
+void dump_simple_list(struct LinkedList<T>* li, const char* name, void(*callback)(T data, int indent, int indent_now, Args... args), int indent, int indent_now, size_t max_inline_count, Args... args) {
+    if (!callback || !name) return;
+    std::string ind(indent_now, ' ');
+    size_t c = linked_list_count(li);
+    if (c == 0) {
+        printf("%s%s: (Empty)\n", ind.c_str(), name);
+    } else if (c <= max_inline_count) {
+        printf("%s%s: ", ind.c_str(), name);
+        struct LinkedList<T>* t = linked_list_head(li);
+        callback(t->d, indent, 0, args...);
+        while (t->next) {
+            t = t->next;
+            printf(", ");
+            callback(t->d, indent, 0, args...);
+        }
+        printf("\n");
+    } else {
+        printf("%s%s: \n", ind.c_str(), name);
+        struct LinkedList<T>* t = linked_list_head(li);
+        callback(t->d, indent, indent_now + indent, args...);
+        printf("\n");
+        while (t->next) {
+            t = t->next;
+            callback(t->d, indent, indent_now + indent, args...);
+            printf("\n");
+        }
+    }
+}
+template <typename K, typename V, typename ... Args>
+void dump_dict(K key, V value, const char* name, int indent, int indent_now, void(*key_callback)(K key, int indent, int indent_now), void(*value_callback)(V value, int indent, int indent_now, Args... args), Args... args) {
+    if (!key_callback || !value_callback) return;
+    std::string ind(indent_now, ' ');
+    std::string tmp("Key");
+    if (name) tmp = name;
+    printf("%s%s ", ind.c_str(), tmp.c_str());
+    key_callback(key, indent, 0);
+    printf(": \n");
+    value_callback(value, indent, indent_now + indent, args...);
+}
+#ifdef HAVE_PRINTF_S
+#undef printf
+#endif
 #define UNITYFS_COMPRESSION_NONE 0
 #define UNITYFS_COMPRESSION_LZMA 1
 #define UNITYFS_COMPRESSION_LZ4 2

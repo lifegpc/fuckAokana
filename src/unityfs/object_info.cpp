@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
 #include "asset.h"
 #include "block_storage.h"
 #include "file_reader.h"
@@ -104,4 +105,21 @@ end:
     if (f) free_file_reader(f);
     free_unityfs_object_info(obj);
     return nullptr;
+}
+
+void dump_unityfs_object_info(unityfs_object_info* obj, int indent, int indent_now) {
+    if (!obj) return;
+    std::string ind(indent_now, ' ');
+    printf("%sPath ID: %" PRIi64 "\n", ind.c_str(), obj->path_id);
+    printf("%sData offset: %" PRIi64 "\n", ind.c_str(), obj->data_offset);
+    printf("%sSize: %" PRIu32 "\n", ind.c_str(), obj->size);
+    printf("%sType ID: %" PRIi32 "\n", ind.c_str(), obj->type_id);
+    printf("%sClass ID: %" PRIi32 "\n", ind.c_str(), obj->class_id);
+    std::string tmp = obj->is_destroyed ? "yes" : "no";
+    printf("%sIs destroyed: %s\n", ind.c_str(), tmp.c_str());
+    if (obj->asset) {
+        if (obj->asset->info && obj->asset->info->name) {
+            printf("%sFrom asset: %s\n", ind.c_str(), obj->asset->info->name);
+        }
+    }
 }

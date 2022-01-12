@@ -15,6 +15,7 @@ void free_unityfs_archive(unityfs_archive* arc);
 unityfs_archive* open_unityfs_archive(unityfs_environment* env, const char* f);
 unityfs_environment* create_unityfs_environment();
 void free_unityfs_environment(unityfs_environment* env);
+void dump_unityfs_archive(unityfs_archive* arc, int indent, int indent_now);
 #if __cplusplus
 }
 #endif

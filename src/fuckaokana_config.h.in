@@ -1,3 +1,6 @@
+#ifndef _FUCKAOKANA_CONFIG_H
+#define _FUCKAOKANA_CONFIG_H
 #cmakedefine HAVE_FFMPEG @HAVE_FFMPEG@
 #cmakedefine HAVE_PRINTF_S @HAVE_PRINTF_S@
 #cmakedefine HAVE_LZ4 @HAVE_LZ4@
+#endif
