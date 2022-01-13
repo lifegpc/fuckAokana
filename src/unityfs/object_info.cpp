@@ -8,6 +8,7 @@
 #include <string>
 #include "asset.h"
 #include "block_storage.h"
+#include "environment.h"
 #include "file_reader.h"
 
 #if HAVE_PRINTF_S
@@ -122,4 +123,26 @@ void dump_unityfs_object_info(unityfs_object_info* obj, int indent, int indent_n
             printf("%sFrom asset: %s\n", ind.c_str(), obj->asset->info->name);
         }
     }
+}
+
+unityfs_type_tree* get_object_info_tree(unityfs_object_info* obj) {
+    if (!obj) return nullptr;
+    if (obj->type_id >= 0) {
+        return dict_get_value(obj->asset->types, obj->type_id);
+    } else {
+        if (dict_have_key(obj->asset->tree->type_trees, obj->type_id)) {
+            return dict_get_value(obj->asset->tree->type_trees, obj->type_id);
+        } else if (dict_have_key(obj->asset->tree->type_trees, obj->class_id)) {
+            return dict_get_value(obj->asset->tree->type_trees, obj->class_id);
+        } else {
+            unityfs_type_metadata* meta = nullptr;
+            if (obj->asset->arc) {
+                meta = get_default_type_metadata(obj->asset->arc->env);
+            }
+            if (meta) {
+                return dict_get_value(meta->type_trees, obj->class_id);
+            }
+        }
+    }
+    return nullptr;
 }

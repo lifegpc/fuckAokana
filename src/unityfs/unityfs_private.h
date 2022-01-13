@@ -2,11 +2,11 @@
 #define _UNITYFS_UNITYFS_PRIVATE_H
 #include <stdint.h>
 #include <stdio.h>
+#include <string>
 #include "fuckaokana_config.h"
 #include "linked_list.h"
 #include "dict.h"
-typedef struct unityfs_asset unityfs_asset;
-typedef struct unityfs_environment unityfs_environment;
+#include "unityfs.h"
 typedef struct unityfs_block_info {
     int32_t compress_size;
     int32_t uncompress_size;
@@ -30,6 +30,12 @@ typedef struct unityfs_type_tree {
     int32_t flags;
     unsigned char is_array;
 } unityfs_type_tree;
+typedef struct unityfs_object {
+    void* data;
+    char* type;
+    unsigned char is_number : 1;
+    unsigned char is_bool : 1;
+} unityfs_object;
 typedef struct unityfs_object_info {
     unityfs_asset* asset;
     int64_t path_id;
@@ -64,6 +70,7 @@ typedef struct unityfs_assetref {
     unsigned char asset_self;
 } unityfs_assetref;
 typedef struct unityfs_asset {
+    unityfs_archive* arc;
     unityfs_node_info* info;
     uint32_t metadata_size;
     uint32_t file_size;
@@ -129,7 +136,6 @@ void dump_unityfs_node_info(unityfs_node_info n, int indent, int indent_now);
 void dump_unityfs_asset(unityfs_asset* asset, int indent, int indent_now);
 void dump_unityfs_type_metadata(unityfs_type_metadata* meta, int indent, int indent_now);
 void dump_unityfs_type_tree(unityfs_type_tree* tree, int indent, int indent_now);
-void dump_unityfs_object_info(unityfs_object_info* obj, int indent, int indent_now);
 void dump_unityfs_asset_add(unityfs_asset_add add, int indent, int indent_now);
 void dump_unityfs_assetref(unityfs_assetref* ref, int indent, int indent_now);
 #if HAVE_PRINTF_S
@@ -191,4 +197,5 @@ void dump_dict(K key, V value, const char* name, int indent, int indent_now, voi
 #define UNITYFS_COMPRESSION_LZ4 2
 #define UNITYFS_COMPRESSION_LZ4HC 3
 #define UNITYFS_COMPRESSION_LZHAM 4
+#define UNITYFS_TYPE_TREE_POST_ALIGN 0x4000
 #endif

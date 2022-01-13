@@ -176,6 +176,9 @@ bool extract_unityfs(std::string input, std::string output, bool overwrite, bool
     unityfs_archive* arc = nullptr;
     bool re = true;
     auto env = create_unityfs_environment();
+    struct LinkedList<unityfs_asset*>* assets = nullptr;
+    unityfs_object_info* obj = nullptr;
+    unityfs_object* o = nullptr;
     if (!env) {
         printf("Out of memory.\n");
         re = false;
@@ -188,8 +191,38 @@ bool extract_unityfs(std::string input, std::string output, bool overwrite, bool
     if (verbose) {
         dump_unityfs_archive(arc, 2, 0);
     }
+    if (!(assets = get_assets_from_archive(arc))) {
+        printf("Out of memory.\n");
+        re = false;
+        goto end;
+    }
+    if (linked_list_count(assets) != 1) {
+        printf("More than one assets are founded.\n");
+        re = false;
+        goto end;
+    }
+    if (!(obj = get_object_from_asset_by_path_id(assets->d, 1))) {
+        printf("Can not get object from assets.\n");
+        re = false;
+        goto end;
+    }
+    if (verbose) {
+        printf("The object info get from asset: \n");
+        dump_unityfs_object_info(obj, 2, 2);
+    }
+    if (!(o = create_object_from_object_info(obj))) {
+        printf("Failed to load object.\n");
+        re = false;
+        goto end;
+    }
+    if (verbose) {
+        printf("The information of loaded object: \n");
+        dump_unityfs_object(o, 2, 2);
+    }
 end:
     if (arc) free_unityfs_archive(arc);
     if (env) free_unityfs_environment(env);
+    if (o) free_unityfs_object(o);
+    linked_list_clear(assets);
     return re;
 }

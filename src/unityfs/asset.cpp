@@ -51,6 +51,7 @@ unityfs_asset* create_asset_from_node(unityfs_archive* arc, unityfs_node_info* i
     }
     memset(asset, 0, sizeof(unityfs_asset));
     asset->info = inf;
+    asset->arc = arc;
     if (unityfs_asset_is_resource(inf->name)) {
         asset->is_resource = 1;
         return asset;
@@ -293,4 +294,9 @@ void dump_unityfs_asset_add(unityfs_asset_add add, int indent, int indent_now) {
     std::string ind(indent_now, ' ');
     printf("%sID: %" PRIi64 "\n", ind.c_str(), add.id);
     printf("%sData: %" PRIi32 "\n", ind.c_str(), add.data);
+}
+
+unityfs_object_info* get_object_from_asset_by_path_id(unityfs_asset* asset, int64_t path_id) {
+    if (!asset) return nullptr;
+    return dict_get_value(asset->objects, path_id);
 }

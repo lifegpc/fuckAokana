@@ -60,6 +60,12 @@ set(
     unityfs/dump.cpp
     "unityfs/environment.h"
     "unityfs/environment.cpp"
+    unityfs/object/boolean.h
+    unityfs/object/boolean.cpp
+    unityfs/object/number.h
+    unityfs/object/number.cpp
+    unityfs/object.h
+    unityfs/object.cpp
     unityfs/object_info.h
     unityfs/object_info.cpp
     "unityfs/type.h"

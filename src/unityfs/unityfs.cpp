@@ -384,3 +384,24 @@ void dump_unityfs_node_info(unityfs_node_info n, int indent, int indent_now) {
     if (n.name) name = n.name;
     printf("%sName: %s\n", ind.c_str(), name.c_str());
 }
+
+struct LinkedList<unityfs_asset*>* get_assets_from_archive(unityfs_archive* arc, bool exclude_resource) {
+    if (!arc) return nullptr;
+    struct LinkedList<unityfs_asset*>* li = nullptr, * t = arc->assets;
+    if (!t) return nullptr;
+    if (!exclude_resource || !t->d->is_resource) {
+        if (!linked_list_append(li, &t->d)) {
+            return nullptr;
+        }
+    }
+    while (t->next) {
+        t = t->next;
+        if (!exclude_resource || !t->d->is_resource) {
+            if (!linked_list_append(li, &t->d)) {
+                linked_list_clear(li);
+                return nullptr;
+            }
+        }
+    }
+    return li;
+}
