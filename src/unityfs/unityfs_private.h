@@ -5,7 +5,7 @@
 #include <string>
 #include "fuckaokana_config.h"
 #include "linked_list.h"
-#include "dict.h"
+#include "../utils/dict.h"
 #include "unityfs.h"
 typedef struct unityfs_block_info {
     int32_t compress_size;
@@ -31,10 +31,16 @@ typedef struct unityfs_type_tree {
     unsigned char is_array;
 } unityfs_type_tree;
 typedef struct unityfs_object {
+    unityfs_asset* asset;
     void* data;
     char* type;
     unsigned char is_number : 1;
     unsigned char is_bool : 1;
+    unsigned char is_str : 1;
+    unsigned char is_vect : 1;
+    unsigned char is_pointer : 1;
+    unsigned char is_map : 1;
+    unsigned char is_dict : 1;
 } unityfs_object;
 typedef struct unityfs_object_info {
     unityfs_asset* asset;

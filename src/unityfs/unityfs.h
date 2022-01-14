@@ -26,6 +26,8 @@ void dump_unityfs_object_info(unityfs_object_info* obj, int indent, int indent_n
 unityfs_object* create_object_from_object_info(unityfs_object_info* obj);
 void free_unityfs_object(unityfs_object* obj);
 void dump_unityfs_object(unityfs_object* obj, int indent, int indent_now);
+int unityfs_object_read_int64(unityfs_object* obj, int64_t* re);
+int unityfs_object_read_uint64(unityfs_object* obj, uint64_t* re);
 #if __cplusplus
 }
 struct LinkedList<unityfs_asset*>* get_assets_from_archive(unityfs_archive* arc, bool exclude_resource = true);

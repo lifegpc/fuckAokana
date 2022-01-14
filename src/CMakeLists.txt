@@ -62,8 +62,18 @@ set(
     "unityfs/environment.cpp"
     unityfs/object/boolean.h
     unityfs/object/boolean.cpp
+    unityfs/object/dict.h
+    unityfs/object/dict.cpp
+    unityfs/object/map.h
+    unityfs/object/map.cpp
     unityfs/object/number.h
     unityfs/object/number.cpp
+    unityfs/object/pointer.h
+    unityfs/object/pointer.cpp
+    "unityfs/object/string.h"
+    "unityfs/object/string.cpp"
+    unityfs/object/vector.h
+    unityfs/object/vector.cpp
     unityfs/object.h
     unityfs/object.cpp
     unityfs/object_info.h

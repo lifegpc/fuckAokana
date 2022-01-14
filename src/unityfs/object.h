@@ -5,11 +5,13 @@
 #if __cplusplus
 extern "C" {
 #endif
-unityfs_object* load_object(unityfs_type_tree* tree, file_reader_file* f);
+unityfs_object* load_object(unityfs_type_tree* tree, file_reader_file* f, unityfs_asset* asset);
 void dump_unityfs_inline_object(unityfs_object* obj, int indent, int indent_now);
 void print_unityfs_object_value(unityfs_object* obj, int indent, int indent_now);
 #if __cplusplus
 }
 bool unityfs_object_is_inline_value(unityfs_object* obj);
+bool unityfs_object_have_count(unityfs_object* obj);
+size_t unityfs_object_get_count(unityfs_object* obj);
 #endif
 #endif

@@ -3,6 +3,10 @@
 #include <malloc.h>
 #include <string.h>
 
+#if HAVE_PRINTF_S
+#define printf printf_s
+#endif
+
 bool is_bool_type(std::string name) {
     return name == "bool";
 }

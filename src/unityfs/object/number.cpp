@@ -87,3 +87,34 @@ void print_number(unityfs_object* obj, int indent, int indent_now) {
     else if (type == "float") print_float(*(float*)(obj->data), indent, indent_now);
     else if (type == "double") print_double(*(double*)(obj->data), indent, indent_now);
 }
+
+template <typename T>
+int unityfs_object_read_num(unityfs_object* obj, T* re) {
+    if (!obj || !re || !obj->is_number || !obj->type || !obj->data) return 1;
+    std::string type(obj->type);
+    T r = 0;
+    if (type == "SInt8") r = *(int8_t*)(obj->data);
+    else if (type == "UInt8") r = *(uint8_t*)(obj->data);
+    else if (type == "SInt16") r = *(int16_t*)(obj->data);
+    else if (type == "UInt16") r = *(uint16_t*)(obj->data);
+    else if (type == "SInt64") r = *(int64_t*)(obj->data);
+    else if (type == "UInt64") r = *(uint64_t*)(obj->data);
+    else if (type == "SInt32" || type == "int") r = *(int32_t*)(obj->data);
+    else if (type == "UInt32" || type == "unsigned int") r = *(uint32_t*)(obj->data);
+    else if (type == "float") r = *(float*)(obj->data);
+    else if (type == "double") r = *(double*)(obj->data);
+    else {
+        printf("Unknown type: %s.\n", type.c_str());
+        return 1;
+    }
+    *re = r;
+    return 0;
+}
+
+int unityfs_object_read_int64(unityfs_object* obj, int64_t* re) {
+    return unityfs_object_read_num(obj, re);
+}
+
+int unityfs_object_read_uint64(unityfs_object* obj, uint64_t* re) {
+    return unityfs_object_read_num(obj, re);
+}
