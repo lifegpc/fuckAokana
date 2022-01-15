@@ -17,7 +17,7 @@ bool extract_all_archive(std::string input, std::string output, bool overwrite, 
     }
     for (auto an = li.begin(); an != li.end(); an++) {
         auto arc_name = *an;
-        if (arc_name.find(".dat") != (arc_name.length() - 4)) continue;
+        if (arc_name.find(".dat") != (arc_name.length() - 4) && arc_name != "video_op" && arc_name != "video_ed" && arc_name != "video_yokoku") continue;
         auto arc_full_path = fileop::join(input, arc_name);
         if (verbose) {
             printf("Found archive %s (%s).\n", arc_name.c_str(), arc_full_path.c_str());
