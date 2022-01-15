@@ -157,6 +157,135 @@ end:
     return true;
 }
 
+bool extract_unityfs(unityfs_object* key, unityfs_object* value, std::string output, bool overwrite, bool verbose) {
+    if (!key || !value) return false;
+    std::string name, path;
+    unityfs_object* pointer = nullptr, * obj = nullptr, * reso = nullptr;
+    unityfs_streamed_resource* f = nullptr;
+    FILE* of = nullptr;
+    bool re = true;
+    int fd = 0;
+    int err = 0;
+    char buf[1024];
+    size_t c = 0;
+#if _WIN32
+    int dir_mode = 0;
+    int file_mode = _S_IWRITE;
+#else
+    int dir_mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH;
+    int file_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+#endif
+    if (verbose) {
+        printf("Key: \n");
+        dump_unityfs_object(key, 2, 2);
+        printf("Value: \n");
+        dump_unityfs_object(value, 2, 2);
+    }
+    if (!unityfs_object_is_str(key)) {
+        printf("Key is not string.\n");
+        return false;
+    }
+    if (!unityfs_object_read_str(key, name)) {
+        printf("Failed to read string from key.\n");
+        return false;
+    }
+    if (!unityfs_object_is_dict(value)) {
+        printf("Value is not a dict.\n");
+        return false;
+    }
+    if (!(pointer = unityfs_object_dict_get(value, "asset"))) {
+        printf("Can not get the asset.\n");
+        return false;
+    }
+    if (!unityfs_object_is_pointer(pointer)) {
+        printf("Asset is not a pointer type.\n");
+        return false;
+    }
+    if (!(obj = unityfs_object_pointer_resolve(pointer))) {
+        printf("Failed to resolve the pointer of asset.\n");
+        return false;
+    }
+    if (verbose) {
+        printf("The asset information: \n");
+        dump_unityfs_object(obj, 2, 2);
+    }
+    if (!unityfs_object_is_dict(obj)) {
+        printf("The asset is not a dict.\n");
+        re = false;
+        goto end;
+    }
+    if (!(reso = unityfs_object_dict_get(obj, "m_ExternalResources"))) {
+        printf("Failed to get resource object.\n");
+        re = false;
+        goto end;
+    }
+    if (!unityfs_object_is_streamed_resource(reso)) {
+        printf("Resource is not streamed resource.\n");
+        re = false;
+        goto end;
+    }
+    if (!(f = get_streamed_resource_from_object(reso))) {
+        printf("Failed to get streamed resource from resouce object.\n");
+        re = false;
+        goto end;
+    }
+    path = fileop::join(output, name);
+    if (fileop::exists(path)) {
+        if (!overwrite) {
+            if (verbose) {
+                printf("Output file \"%s\" already exists, skip extract file \"%s\".\n", path.c_str(), name.c_str());
+            }
+            goto end;
+        } else {
+            if (!fileop::remove(path, true)) {
+                re = false;
+                goto end;
+            }
+            if (verbose) {
+                printf("Removed output file \"%s\".\n", path.c_str());
+            }
+        }
+    }
+    if (!fileop::mkdir_for_file(path, dir_mode)) {
+        auto dn = fileop::dirname(path);
+        printf("Can not create directory \"%s\".\n", dn.c_str());
+        re = false;
+        goto end;
+    }
+    if ((err = fileop::open(path, fd, O_WRONLY | _O_BINARY | O_CREAT, _SH_DENYWR, file_mode))) {
+        printf("Can not open file \"%s\".\n", path.c_str());
+        re = false;
+        goto end;
+    }
+    if (!(of = fileop::fdopen(fd, "w"))) {
+        printf("Can not open file \"%s\".\n", path.c_str());
+        fileop::close(fd);
+        re = false;
+        goto end;
+    }
+    while (1) {
+        c = unityfs_streamed_resource_read(f, 1024, buf);
+        if (!c) break;
+        if (fwrite(buf, 1, c, of) != c) {
+            std::string errmsg;
+            if (!err::get_errno_message(errmsg, errno)) {
+                errmsg = "Unknown error";
+            }
+            printf("Can not write data to file \"%s\": \"%s\".\n", path.c_str(), errmsg.c_str());
+            re = false;
+            goto end;
+        }
+    }
+    if (verbose) {
+        printf("Writed file \"%s\" to \"%s\".\n", name.c_str(), path.c_str());
+    }
+end:
+    if (obj) free_unityfs_object(obj);
+    if (f) free_unityfs_streamed_resource(f);
+    if (of) fileop::fclose(of);
+    return re;
+}
+
 bool extract_unityfs(std::string input, std::string output, bool overwrite, bool verbose) {
     if (!fileop::exists(input)) {
         printf("Input file \"%s\" is not exists.\n", input.c_str());
@@ -164,10 +293,8 @@ bool extract_unityfs(std::string input, std::string output, bool overwrite, bool
     }
 #if _WIN32
     int dir_mode = 0;
-    int file_mode = _S_IWRITE;
 #else
     int dir_mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH;
-    int file_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 #endif
     if (!fileop::mkdirs(output, dir_mode, true)) {
         printf("Can not create directory: \"%s\".\n", output.c_str());
@@ -178,7 +305,7 @@ bool extract_unityfs(std::string input, std::string output, bool overwrite, bool
     auto env = create_unityfs_environment();
     struct LinkedList<unityfs_asset*>* assets = nullptr;
     unityfs_object_info* obj = nullptr;
-    unityfs_object* o = nullptr;
+    unityfs_object* o = nullptr, * o2 = nullptr;
     if (!env) {
         printf("Out of memory.\n");
         re = false;
@@ -219,10 +346,33 @@ bool extract_unityfs(std::string input, std::string output, bool overwrite, bool
         printf("The information of loaded object: \n");
         dump_unityfs_object(o, 2, 2);
     }
+    if (!unityfs_object_is_dict(o)) {
+        printf("The root object is not a custom type.\n");
+        re = false;
+        goto end;
+    }
+    if (!(o2 = unityfs_object_dict_get(o, "m_Container"))) {
+        printf("Failed to get m_Container from object.\n");
+        re = false;
+        goto end;
+    }
+    if (verbose) {
+        printf("The information of m_Container: \n");
+        dump_unityfs_object(o2, 2, 2);
+    }
+    if (!unityfs_object_is_map(o2)) {
+        printf("The container is not a map object.\n");
+        re = false;
+        goto end;
+    }
+    if (!unityfs_object_map_iter(o2, &extract_unityfs, output, overwrite, verbose)) {
+        re = false;
+        goto end;
+    }
 end:
+    if (o) free_unityfs_object(o);
     if (arc) free_unityfs_archive(arc);
     if (env) free_unityfs_environment(env);
-    if (o) free_unityfs_object(o);
     linked_list_clear(assets);
     return re;
 }

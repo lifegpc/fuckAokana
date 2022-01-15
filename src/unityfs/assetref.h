@@ -5,6 +5,7 @@
 #if __cplusplus
 extern "C" {
 unityfs_assetref* create_assetref_from_asset(unityfs_asset* asset, file_reader_file* f);
+unityfs_asset* unityfs_assetref_resolve(unityfs_assetref* ref);
 #endif
 #if __cplusplus
 }

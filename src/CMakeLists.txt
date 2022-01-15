@@ -70,6 +70,8 @@ set(
     unityfs/object/number.cpp
     unityfs/object/pointer.h
     unityfs/object/pointer.cpp
+    unityfs/object/streamed_resource.h
+    unityfs/object/streamed_resource.cpp
     "unityfs/object/string.h"
     "unityfs/object/string.cpp"
     unityfs/object/vector.h

@@ -54,3 +54,9 @@ void print_string(unityfs_object* obj, int indent, int indent_now) {
     std::string ind(indent_now, ' ');
     printf("%s%s", ind.c_str(), tmp);
 }
+
+bool unityfs_object_read_str(unityfs_object* obj, std::string& s) {
+    if (!obj || !obj->data || !obj->is_str) return false;
+    s = std::string((char*)obj->data);
+    return true;
+}

@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <malloc.h>
 #include <string.h>
+#include "../assetref.h"
 #include "number.h"
 #include "../object.h"
 
@@ -78,4 +79,25 @@ void print_pointer(unityfs_object* obj, int indent, int indent_now) {
     std::string ind(indent_now, ' ');
     printf("%sFile ID: %" PRIu64 "\n", ind.c_str(), p->file_id);
     printf("%sPath ID: %" PRIi64 "\n", ind.c_str(), p->path_id);
+}
+
+unityfs_object* unityfs_object_pointer_resolve(unityfs_object* obj) {
+    if (!obj || !obj->is_pointer || !obj->data) return nullptr;
+    auto p = (unityfs_pointer_object*)obj->data;
+    auto ref = linked_list_get(obj->asset->asset_refs, p->file_id);
+    if (!ref) {
+        printf("Failed to get asset reference.\n");
+        return nullptr;
+    }
+    auto asset = unityfs_assetref_resolve(ref->d);
+    if (!asset) {
+        printf("Failed to get asset.\n");
+        return nullptr;
+    }
+    auto o = dict_get_value(asset->objects, p->path_id);
+    if (!o) {
+        printf("Can not find object with path_id %" PRIi64 " in asset.\n", p->path_id);
+        return nullptr;
+    }
+    return create_object_from_object_info(o);
 }

@@ -14,6 +14,7 @@ unityfs_asset* create_asset_from_node(unityfs_archive* arc, unityfs_node_info* i
  * @return 1 if error orrcured otherwise 0
 */
 int asset_read_id(unityfs_asset* asset, file_reader_file* f, int64_t* re);
+unityfs_asset* unityfs_asset_get_asset(unityfs_asset* asset, const char* path);
 #if __cplusplus
 }
 #endif

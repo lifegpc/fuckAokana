@@ -65,3 +65,13 @@ size_t get_dict_count(unityfs_object* obj) {
     auto d = (struct Dict<char*, unityfs_object*>*)obj->data;
     return dict_count(d);
 }
+
+bool unityfs_dict_cmp_key(char* key, const char* key2) {
+    return !strcmp(key, key2);
+}
+
+unityfs_object* unityfs_object_dict_get(unityfs_object* obj, const char* key) {
+    if (!obj || !key || !obj->is_dict || !obj->data) return nullptr;
+    auto d = (struct Dict<char*, unityfs_object*>*)obj->data;
+    return dict_get_value(d, key, &unityfs_dict_cmp_key);
+}

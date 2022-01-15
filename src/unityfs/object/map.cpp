@@ -121,3 +121,8 @@ size_t get_map_count(unityfs_object* obj) {
     auto d = (struct Dict<unityfs_object*, unityfs_object*>*)obj->data;
     return dict_count(d);
 }
+
+struct Dict<unityfs_object*, unityfs_object*>* unityfs_object_map_get(unityfs_object* obj) {
+    if (!obj || !obj->is_map || !obj->data) return nullptr;
+    return (struct Dict<unityfs_object*, unityfs_object*>*)obj->data;
+}

@@ -5,10 +5,12 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <string.h>
+#include "cstr_util.h"
 #include "../embed_data.h"
 #include "file_reader.h"
 #include "memfile.h"
 #include "type.h"
+#include "urlparse.h"
 
 #if HAVE_PRINTF_S
 #define printf printf_s
@@ -63,4 +65,64 @@ int delete_archive_from_environment(unityfs_environment* env, unityfs_archive* a
     if (!env || !arc) return 1;
     if (!linked_list_have(env->archives, arc)) return 0;
     return linked_list_delete(env->archives, arc) ? 0 : 1;
+}
+
+bool compare_archive_key(unityfs_archive* arc, const char* name) {
+    if (!arc->name || !name) return false;
+    return !cstr_stricmp(arc->name, name);
+}
+
+bool compare_asset_name(unityfs_asset* asset, const char* name) {
+    if (!name) return false;
+    if (asset->info && asset->info->name) return !cstr_stricmp(asset->info->name, name);
+    return false;
+}
+
+unityfs_asset* unityfs_environment_get_asset(unityfs_environment* env, const char* url) {
+    if (!env || !url) return nullptr;
+    auto u = urlparse(url, nullptr, 1);
+    std::string archive, name, path;
+    struct LinkedList<unityfs_asset*>* asset = nullptr;
+    struct LinkedList<unityfs_archive*>* arc = nullptr;
+    size_t i = 0;
+    if (!u) {
+        printf("Out of memory.\n");
+        return nullptr;
+    }
+    if (strcmp(u->scheme, "archive")) {
+        printf("Unsupported scheme %s. (Url: %s)\n", u->scheme, url);
+        goto end;
+    }
+    path = u->path;
+    if (path.find('/') == 0) {
+        path = path.substr(1);
+    }
+    i = path.find('/');
+    if (i == -1) {
+        printf("Can not find archive name in path %s. (Url: %s)\n", u->path, url);
+        goto end;
+    }
+    archive = path.substr(0, i);
+    name = path.substr(i + 1);
+    arc = linked_list_get(env->archives, archive.c_str(), &compare_archive_key);
+    if (!arc || !arc->d) {
+        printf("Failed to found archive %s. (Url: %s)\n", archive.c_str(), url);
+        goto end;
+    }
+    asset = linked_list_get(arc->d->assets, name.c_str(), &compare_asset_name);
+    if (!asset || !asset->d) {
+        printf("Failed to found asset %s in archive %s. (Url: %s)\n", name.c_str(), archive.c_str(), url);
+        goto end;
+    }
+    if (u) free_url_parse_result(u);
+    return asset->d;
+end:
+    if (u) free_url_parse_result(u);
+    return nullptr;
+}
+
+unityfs_asset* unityfs_environment_get_asset_by_filename(unityfs_environment* env, const char* path) {
+    if (!env || !path) return nullptr;
+    printf("Load asset with file name is not implemented.\n");
+    return nullptr;
 }

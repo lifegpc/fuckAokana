@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <string>
+#include "asset.h"
 #include "str_util.h"
 
 #if HAVE_PRINTF_S
@@ -76,4 +77,12 @@ void dump_unityfs_assetref(unityfs_assetref* ref, int indent, int indent_now) {
     printf("%sType: %" PRIi32 "\n", ind.c_str(), ref->type);
     tmp = ref->file_path ? ref->file_path : "(Unknown)";
     printf("%sFile path: %s\n", ind.c_str(), tmp.c_str());
+}
+
+unityfs_asset* unityfs_assetref_resolve(unityfs_assetref* ref) {
+    if (!ref) return nullptr;
+    if (ref->asset_self) return ref->source;
+    if (ref->asset) return ref->asset;
+    ref->asset = unityfs_asset_get_asset(ref->source, ref->file_path);
+    return ref->asset;
 }

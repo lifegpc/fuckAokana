@@ -219,3 +219,23 @@ size_t unityfs_object_get_count(unityfs_object* obj) {
     else if (obj->is_vect) return get_vector_count(obj);
     return 0;
 }
+
+bool unityfs_object_is_dict(unityfs_object* obj) {
+    if (!obj) return false;
+    return obj->is_dict;
+}
+
+bool unityfs_object_is_map(unityfs_object* obj) {
+    if (!obj) return false;
+    return obj->is_map;
+}
+
+bool unityfs_object_is_str(unityfs_object* obj) {
+    if (!obj) return false;
+    return obj->is_str;
+}
+
+bool unityfs_object_is_pointer(unityfs_object* obj) {
+    if (!obj) return false;
+    return obj->is_pointer;
+}

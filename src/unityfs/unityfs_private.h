@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <string>
 #include "fuckaokana_config.h"
-#include "linked_list.h"
-#include "../utils/dict.h"
 #include "unityfs.h"
 typedef struct unityfs_block_info {
     int32_t compress_size;
@@ -77,6 +75,7 @@ typedef struct unityfs_assetref {
 } unityfs_assetref;
 typedef struct unityfs_asset {
     unityfs_archive* arc;
+    unityfs_environment* env;
     unityfs_node_info* info;
     uint32_t metadata_size;
     uint32_t file_size;

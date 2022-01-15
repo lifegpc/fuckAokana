@@ -14,6 +14,8 @@
 #include "object_info.h"
 #include "type.h"
 
+#define LIBRARY_UNITY_DEFAULT_RESOURCES "library/unity default resources"
+
 #if HAVE_PRINTF_S
 #define printf printf_s
 #endif
@@ -51,6 +53,7 @@ unityfs_asset* create_asset_from_node(unityfs_archive* arc, unityfs_node_info* i
     }
     memset(asset, 0, sizeof(unityfs_asset));
     asset->info = inf;
+    asset->env = arc->env;
     asset->arc = arc;
     if (unityfs_asset_is_resource(inf->name)) {
         asset->is_resource = 1;
@@ -299,4 +302,17 @@ void dump_unityfs_asset_add(unityfs_asset_add add, int indent, int indent_now) {
 unityfs_object_info* get_object_from_asset_by_path_id(unityfs_asset* asset, int64_t path_id) {
     if (!asset) return nullptr;
     return dict_get_value(asset->objects, path_id);
+}
+
+unityfs_asset* unityfs_asset_get_asset(unityfs_asset* asset, const char* path) {
+    if (!asset || !path) return nullptr;
+    std::string p(path);
+    if (p.find(":") != -1) {
+        return unityfs_environment_get_asset(asset->env, path);
+    } else if (p == LIBRARY_UNITY_DEFAULT_RESOURCES) {
+        printf("Refused to load " LIBRARY_UNITY_DEFAULT_RESOURCES "\n");
+        return nullptr;
+    } else {
+        return unityfs_environment_get_asset_by_filename(asset->env, path);
+    }
 }
